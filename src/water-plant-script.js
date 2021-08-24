@@ -6,14 +6,9 @@ const axios = require('axios')
 const gpioNumbers = [17]
 const moistureChannels = [5]
 
-const reportMoistureLevel = ({rawValue, value, soilDrynessPercentage}, index) =>
-    axios.get(`https://shaharz.wixsite.com/my-site-3/_functions/report
-                    ?soilDrynessPercentage=${soilDrynessPercentage}
-                    &rawValue=${rawValue}
-                    &value=${value}
-                    &gpio=${gpioNumbers[index]}`
-    ).catch(err => console.log(err))
-
+const reportMoistureLevel = (moistureLevel, planterId) =>
+    axios.get('https://shaharz.wixsite.com/my-site-3/_functions/report', {params: {...moistureLevel, gpio: planterId}})
+        .catch(err => console.log("Reporting moisture level failed", err))
 
 const shouldWaterPlant = () => {
     // Run every day at 7 a.m.
