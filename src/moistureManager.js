@@ -15,7 +15,7 @@ module.exports = (channel = 5, mcpadc = require('mcp-spi-adc'), iterator = 50) =
     function getMoistureLevel(onComplete) {
         const readings = {rawValues: [], values: []}
 
-        const sensor = mcpadc.open(channel, {speedHz: 20000}, (error) => {
+        const sensor = mcpadc.open(channel, {speedHz: 20000}, error => {
             if (error) {
                 throw new Error(`There was an error accessing the sensor: ${error}`)
             }
@@ -23,7 +23,7 @@ module.exports = (channel = 5, mcpadc = require('mcp-spi-adc'), iterator = 50) =
             while (currentCallNumber > 0) {
                 getSensorReadings(sensor, (err, reading) => {
                     if (err) {
-                        throw new err
+                        throw err
                     }
                     readings.rawValues.push(reading.rawValue)
                     readings.values.push(reading.value)
