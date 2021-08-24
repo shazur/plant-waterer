@@ -1,67 +1,53 @@
-const mcpadc = require('mcp-spi-adc');
-const completelyWet = 395;
-const completelyDry = 780;
+const completelyWet = 0
+const completelyDry = 1
 
-function getSensorReadings(sensor) {
-    return new Promise((resolve, reject) => {
+module.exports = (channel = 5, mcpadc = require('mcp-spi-adc'), iterator = 50) => {
+    function getSensorReadings(sensor, cb) {
         sensor.read((readError, reading) => {
             if (readError) {
-                return reject(new Error(`There was an error getting the sensor reading:
-                    ${readError}`));
+                return cb(new Error(`There was an error getting the sensor reading:
+                    ${readError}`))
             }
-//console.log("reading sensor, value is", reading)
-            return resolve(reading);
-        });
-    });
-}
+            return cb(null, reading)
+        })
+    }
 
-function getMoistureLevel() {
-    const readingPromises = [];
-    let readings = {};
-    readings.rawValues = [];
-    readings.values = [];
+    function getMoistureLevel(onComplete) {
+        const readings = {rawValues: [], values: []}
 
-    return new Promise((resolve, reject) => {
-        const sensor = mcpadc.open(5, {speedHz: 20000}, (error) => {
+        const sensor = mcpadc.open(channel, {speedHz: 20000}, (error) => {
             if (error) {
-                return reject(new Error(`There was an error accessing the sensor: ${error}`))
+                throw new Error(`There was an error accessing the sensor: ${error}`)
             }
-
-            let iterator = 50; // Just need a large number of readings to try for better accuracy
-
-            while (iterator >= 0) {
-                readingPromises.push(getSensorReadings(sensor)
-                    .then(reading => {
-                        readings.rawValues.push(reading.rawValue);
-                        readings.values.push(reading.value);
-                    }).catch(error => {
-                        return reject(error);
-                    })
-                );
-
-                iterator--;
+            let currentCallNumber = iterator
+            while (currentCallNumber > 0) {
+                getSensorReadings(sensor, (err, reading) => {
+                    if (err) {
+                        throw new err
+                    }
+                    readings.rawValues.push(reading.rawValue)
+                    readings.values.push(reading.value)
+                })
+                currentCallNumber--
             }
+        })
+        setTimeout(() => {
+            const averageRawValue = readings.rawValues.reduce((a, b) => a + b, 0) / iterator
+            const averageValue = readings.values.reduce((a, b) => a + b, 0) / iterator
+            onComplete({
+                rawValue: averageRawValue,
+                value: averageValue,
+                soilDrynessPercentage: averageRawValue > 0 ? ((averageRawValue / completelyDry) * 100) : 0,
+            })
+        }, 1)
+    }
 
-            return Promise.all(readingPromises).then(() => {
-                const averageRawValue = readings.rawValues.reduce((a, b) => a + b, 0) / 50;
-                const averageValue = readings.values.reduce((a, b) => a + b, 0) / 50;
+    async function shouldWater() {
+        const moistureLevel = await getMoistureLevel()
+        // Adjust this value based on your sensor and the needs of your plant
+        // Value represents a percentage
+        return moistureLevel <= 45
+    }
 
-                // Set the value to a percentage based on the max reading
-                return resolve({
-                    rawValue: averageRawValue,
-                    value: averageValue,
-                    soilDrynessPercentage: averageRawValue > 0 ? ((averageRawValue / completelyWet) * 100).toFixed(0) : 0,
-                });
-            });
-        });
-    });
+    return {getMoistureLevel, shouldWater}
 }
-
-async function shouldWater() {
-    const moistureLevel = await getMoistureLevel()
-    // Adjust this value based on your sensor and the needs of your plant
-    // Value represents a percentage
-    return moistureLevel <= 45
-}
-
-module.exports = shouldWater
