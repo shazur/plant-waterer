@@ -25,7 +25,7 @@ describe('moistureManager', function () {
         const moistureManager = makeMoistureManager(channel, mcpadc, readings.length)
 
         moistureManager.getMoistureLevel(moistureLevel => {
-            expect(moistureLevel).to.deep.equal({rawValue: 0.5, value: 0.2, soilDrynessPercentage: 50})
+            expect(moistureLevel).to.deep.equal({rawValue: 0.5, value: 0.2, soilDrynessPercentage: 20})
             done()
         })
     })
