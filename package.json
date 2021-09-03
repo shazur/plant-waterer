@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node src/water-plant-script.js",
+    "stop": "node src/destroyer.js",
     "test": "mocha"
   },
   "dependencies": {
