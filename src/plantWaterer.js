@@ -1,5 +1,4 @@
 const Gpio = require('onoff').Gpio
-// const shouldWater = require('./moistureManager')
 const {sleep} = require('./utils')
 
 module.exports = ({pumpRelay = new Gpio(17, 'high'), waitUntilStartTime, wateringTime}) => {
@@ -41,5 +40,5 @@ module.exports = ({pumpRelay = new Gpio(17, 'high'), waitUntilStartTime, waterin
         }, waitUntilStartTime)
     }
 
-    return {water}
+    return {water, stopWateringPlant}
 }

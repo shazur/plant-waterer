@@ -1,7 +1,6 @@
-const completelyWet = 0
 const completelyDry = 1
 
-module.exports = (channel = 5, mcpadc = require('mcp-spi-adc'), iterator = 50) => {
+module.exports = (channel = 5, mcpadc = require('mcp-spi-adc')) => {
     function getSensorReadings(sensor, cb) {
         sensor.read((readError, reading) => {
             if (readError) {
@@ -13,33 +12,25 @@ module.exports = (channel = 5, mcpadc = require('mcp-spi-adc'), iterator = 50) =
     }
 
     function getMoistureLevel(onComplete) {
-        const readings = {rawValues: [], values: []}
 
         const sensor = mcpadc.open(channel, {speedHz: 20000}, error => {
             if (error) {
                 throw new Error(`There was an error accessing the sensor: ${error}`)
             }
-            let currentCallNumber = iterator
-            while (currentCallNumber > 0) {
-                getSensorReadings(sensor, (err, reading) => {
-                    if (err) {
-                        throw err
-                    }
-                    readings.rawValues.push(reading.rawValue)
-                    readings.values.push(reading.value)
-                })
-                currentCallNumber--
-            }
+            setTimeout(() =>
+                    getSensorReadings(sensor, (err, {value, rawValue}) => {
+                        if (err) {
+                            throw err
+                        }
+                        onComplete({
+                            rawValue,
+                            value,
+                            soilDrynessPercentage: rawValue > 0 ? ((value / completelyDry) * 100) : 0,
+                        })
+                    })
+                , 100)
         })
-        setTimeout(() => {
-            const averageRawValue = readings.rawValues.reduce((a, b) => a + b, 0) / iterator
-            const averageValue = readings.values.reduce((a, b) => a + b, 0) / iterator
-            onComplete({
-                rawValue: averageRawValue,
-                value: averageValue,
-                soilDrynessPercentage: averageRawValue > 0 ? ((averageRawValue / completelyDry) * 100) : 0,
-            })
-        }, 1)
+
     }
 
     async function shouldWater() {
